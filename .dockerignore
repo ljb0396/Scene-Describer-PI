@@ -1,0 +1,20 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+build/
+dist/
+componets/
+components/
+main/
+
+# Ignore virtual environments
+.venv/
+venv/
+env/
+
+# Ignore local IDE/Editor cache folders
+.vscode/
+.idea/

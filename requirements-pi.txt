@@ -1,0 +1,12 @@
+# Minimal runtime set for Raspberry Pi 4 (64-bit Raspberry Pi OS, Python 3.13
+# tested; light set installs fine, ultralytics/torch not yet verified there).
+# System packages first:  sudo apt install espeak-ng tesseract-ocr libportaudio2
+# (the full requirements.txt is a dev-machine freeze with CUDA wheels that
+#  cannot install on a Pi)
+numpy
+opencv-python-headless
+requests
+sounddevice
+vosk
+pytesseract
+ultralytics        # pulls torch; only imported when the user says "see"
