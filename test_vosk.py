@@ -62,6 +62,9 @@ def dispatch_new_task(task_function):
 
 
 def main():
+    import signal
+    signal.signal(signal.SIGTERM, signal.default_int_handler)   # SIGTERM now raises KeyboardInterrupt
+
     try:
         print("Loading Vosk model... (This may take a few seconds)")
         model = Model("model")
