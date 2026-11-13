@@ -8,6 +8,7 @@ from vosk import KaldiRecognizer, Model
 
 from tts import speak, stop_speaking
 from vision_tasks import make_task
+import memory
 
 # --- Configuration ---
 UDP_IP = "0.0.0.0"
@@ -22,7 +23,7 @@ SILENCE_RMS_THRESHOLD = 50
 QUESTION_TIMEOUT_S = 8.0  # how long to wait for the spoken question
 QUESTION_MUTE_S = 1.2     # ignore audio while "Go ahead." is playing
 
-grammar = '["read", "see", "question", "stop", "[unk]"]'
+grammar = '["read", "see", "question", "forget", "stop", "[unk]"]'
 
 # Initialize UDP Socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -150,6 +151,9 @@ def main():
                         listen_from = now + QUESTION_MUTE_S
                         question_deadline = listen_from + QUESTION_TIMEOUT_S
                         speak("Go ahead.", force=True)
+                    elif text == "forget":
+                        memory.clear()
+                        speak("Memory cleared.", force=True)
                     elif text == "stop":
                         cancel_current_task.set()
                         stop_speaking()

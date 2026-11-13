@@ -49,6 +49,16 @@ SYSTEM_PROMPT = (
 USER_PROMPT = "Describe what is in front of me."
 DEFAULT_MAX_TOKENS = 120
 
+# Appended to the system prompt only when earlier turns are included. Old
+# answers describe old views, so the model must not present them as current.
+MEMORY_NOTE = (
+    " Earlier messages are your previous answers to earlier views. Only the "
+    "latest image shows what is in front of the person now; things may have "
+    "moved or gone. Never describe a hazard from an earlier answer as if it is "
+    "still there. If asked about something you cannot see in the latest image, "
+    "say you cannot see it now."
+)
+
 
 class OllamaError(Exception):
     """Raised with a short, speakable message."""
@@ -81,7 +91,8 @@ def _post(url, payload, headers, timeout):
 
 
 def describe_frame(frame, prompt=USER_PROMPT, timeout=(5, 45),
-                   system=SYSTEM_PROMPT, max_tokens=DEFAULT_MAX_TOKENS):
+                   system=SYSTEM_PROMPT, max_tokens=DEFAULT_MAX_TOKENS,
+                   history=None):
     """Send one frame to the configured Ollama model; return the text reply.
 
     prompt     -- the user message sent with the image
@@ -101,13 +112,17 @@ def describe_frame(frame, prompt=USER_PROMPT, timeout=(5, 45),
     elif host == DEFAULT_HOST:
         raise OllamaError("Ollama API key is not set.")
 
+    messages = [{"role": "system",
+                 "content": system + (MEMORY_NOTE if history else "")}]
+    if history:
+        messages.extend(history)          # earlier turns: text only, no old images
+    messages.append({"role": "user", "content": prompt,
+                     "images": [encode_frame(frame)]})
+
     payload = {
         "model": model,
         "stream": False,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt, "images": [encode_frame(frame)]},
-        ],
+        "messages": messages,
         # Short answers = faster + cheaper + less to listen to.
         "options": {"num_predict": max_tokens, "temperature": 0.2},
     }
@@ -124,6 +139,11 @@ def describe_frame(frame, prompt=USER_PROMPT, timeout=(5, 45),
         # Some models reject the think flag outright; retry without it.
         del payload["think"]
         resp = _post(url, payload, headers, timeout)
+
+    if not resp.ok:
+        print(f"[Ollama] HTTP {resp.status_code}: {resp.text[:300]!r}")
+    if os.environ.get("OLLAMA_DEBUG") == "1":
+        print(f"[Ollama] raw response: {resp.text[:2000]}")
 
     if "usage" in resp.text[:300].lower() and not resp.ok:
         raise OllamaError("This model needs paid Ollama usage. Pick another.")
@@ -145,5 +165,5 @@ def describe_frame(frame, prompt=USER_PROMPT, timeout=(5, 45),
     if not text:
         raise OllamaError("The cloud model gave an empty answer.")
 
-    print(f"[Ollama] {model} replied in {time.monotonic() - started:.1f}s -> {text}")
+    print(f"[Ollama] {model} replied in {time.monotonic() - started:.1f}s: {text}")
     return text
