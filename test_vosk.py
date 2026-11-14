@@ -66,7 +66,7 @@ def dispatch_new_task(task_function):
 def parse_command(text):
     """'[unk] [unk] question' -> 'question'. Returns None if ambiguous."""
     words = text.split()
-    found = {w for w in words if w in COMMANDS}
+    found = {w for w in words if w in grammar}
     if "stop" in found:                          # always honor stop
         return "stop"
     if len(found) != 1:                          # none, or e.g. "read see"
