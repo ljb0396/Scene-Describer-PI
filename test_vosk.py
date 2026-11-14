@@ -62,6 +62,19 @@ def dispatch_new_task(task_function):
     threading.Thread(target=_switch, args=(task_function,), daemon=True).start()
 
 
+
+def parse_command(text):
+    """'[unk] [unk] question' -> 'question'. Returns None if ambiguous."""
+    words = text.split()
+    found = {w for w in words if w in COMMANDS}
+    if "stop" in found:                          # always honor stop
+        return "stop"
+    if len(found) != 1:                          # none, or e.g. "read see"
+        return None
+    if sum(w == "[unk]" for w in words) > 2:     # long ramble that happens to contain a command
+        return None
+    return found.pop()
+
 def main():
     import signal
     signal.signal(signal.SIGTERM, signal.default_int_handler)   # SIGTERM now raises KeyboardInterrupt
@@ -139,6 +152,7 @@ def main():
                 if recognizer.AcceptWaveform(data):
                     text = json.loads(recognizer.Result()).get("text", "")
                     print(f"\nFinal Text: {text}")
+                    cmd = parse_command(text)
 
                     if text == "read":
                         dispatch_new_task(make_task("read"))
